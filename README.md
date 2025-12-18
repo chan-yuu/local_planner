@@ -1,14 +1,4 @@
-<!--
- * @Author: CYUN && cyun@tju.enu.cn
- * @Date: 2025-12-18 22:06:00
- * @LastEditors: CYUN && cyun@tju.enu.cn
- * @LastEditTime: 2025-12-18 22:36:54
- * @FilePath: /undefined/home/cyun/Videos/local_planner/src/README.md
- * @Description: 
- * 
- * Copyright (c) 2025 by Tianjin University, All Rights Reserved. 
--->
-# local_planner
+
 
 安装spatio_temporal_voxel_layer等内容
 sudo apt install -y \
