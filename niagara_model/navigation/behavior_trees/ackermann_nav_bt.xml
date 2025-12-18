@@ -1,0 +1,154 @@
+<!--
+  阿克曼转向车辆Navigation2行为树配置文件
+  
+  此行为树专为阿克曼转向车辆设计，考虑了以下特点：
+  - 不支持原地旋转
+  - 转向角度限制
+  - 前进优先策略
+  - 适合的恢复行为
+  
+  作者: Navigation2集成团队
+  版本: 1.0
+  日期: 2024
+-->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode number_of_retries="6" name="NavigateRecovery">
+      <PipelineSequence name="NavigateWithReplanning">
+        <RateController hz="1.0">
+          <RecoveryNode number_of_retries="1" name="ComputePathToPose">
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+            <ReactiveFallback name="ComputePathToPoseRecoveryFallback">
+              <GoalUpdated/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </ReactiveFallback>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode number_of_retries="1" name="FollowPath">
+          <FollowPath path="{path}" controller_id="FollowPath"/>
+          <ReactiveFallback name="FollowPathRecoveryFallback">
+            <GoalUpdated/>
+            <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+          </ReactiveFallback>
+        </RecoveryNode>
+      </PipelineSequence>
+      <ReactiveFallback name="RecoveryFallback">
+        <GoalUpdated/>
+        <RoundRobin name="RecoveryActions">
+          <!-- 阿克曼车辆恢复行为：优先使用清除代价地图 -->
+          <Sequence name="ClearingRecovery">
+            <ClearEntireCostmap name="ClearLocalCostmap-Recovery" service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap name="ClearGlobalCostmap-Recovery" service_name="global_costmap/clear_entirely_global_costmap"/>
+          </Sequence>
+          <!-- 阿克曼车辆备用行为：小幅度前进后退 -->
+          <Sequence name="BackupRecovery">
+            <BackUp backup_dist="-0.30" backup_speed="0.05" time_allowance="10"/>
+          </Sequence>
+          <!-- 最后的恢复行为：等待一段时间 -->
+          <Wait wait_duration="5"/>
+        </RoundRobin>
+      </ReactiveFallback>
+    </RecoveryNode>
+  </BehaviorTree>
+  
+  <!-- 路径点跟随行为树 -->
+  <BehaviorTree ID="FollowWaypoints">
+    <RecoveryNode number_of_retries="6" name="FollowWaypointsRecovery">
+      <PipelineSequence name="FollowWaypointsSequence">
+        <RateController hz="1.0">
+          <RecoveryNode number_of_retries="1" name="ComputePathThroughPoses">
+            <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
+            <ReactiveFallback name="ComputePathThroughPosesRecoveryFallback">
+              <GoalsUpdated/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Waypoints" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </ReactiveFallback>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode number_of_retries="1" name="FollowPathWaypoints">
+          <FollowPath path="{path}" controller_id="FollowPath"/>
+          <ReactiveFallback name="FollowPathWaypointsRecoveryFallback">
+            <GoalsUpdated/>
+            <ClearEntireCostmap name="ClearLocalCostmap-Waypoints" service_name="local_costmap/clear_entirely_local_costmap"/>
+          </ReactiveFallback>
+        </RecoveryNode>
+      </PipelineSequence>
+      <ReactiveFallback name="WaypointsRecoveryFallback">
+        <GoalsUpdated/>
+        <RoundRobin name="WaypointsRecoveryActions">
+          <Sequence name="ClearingWaypointsRecovery">
+            <ClearEntireCostmap name="ClearLocalCostmap-WaypointsRecovery" service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap name="ClearGlobalCostmap-WaypointsRecovery" service_name="global_costmap/clear_entirely_global_costmap"/>
+          </Sequence>
+          <BackUp backup_dist="-0.30" backup_speed="0.05" time_allowance="10"/>
+          <Wait wait_duration="5"/>
+        </RoundRobin>
+      </ReactiveFallback>
+    </RecoveryNode>
+  </BehaviorTree>
+  
+  <!-- 简化的导航行为树（用于测试） -->
+  <BehaviorTree ID="SimpleNavigate">
+    <Sequence name="SimpleNavigateSequence">
+      <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+      <FollowPath path="{path}" controller_id="FollowPath"/>
+    </Sequence>
+  </BehaviorTree>
+  
+  <!-- 标准NavigateToPose行为树 -->
+  <BehaviorTree ID="NavigateToPose">
+    <RecoveryNode number_of_retries="6" name="NavigateToPoseRecovery">
+      <PipelineSequence name="NavigateToPoseSequence">
+        <RateController hz="1.0">
+          <RecoveryNode number_of_retries="1" name="ComputePathToPose">
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+            <ReactiveFallback name="ComputePathToPoseRecoveryFallback">
+              <GoalUpdated/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </ReactiveFallback>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode number_of_retries="1" name="FollowPath">
+          <FollowPath path="{path}" controller_id="FollowPath"/>
+          <ReactiveFallback name="FollowPathRecoveryFallback">
+            <GoalUpdated/>
+            <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+          </ReactiveFallback>
+        </RecoveryNode>
+      </PipelineSequence>
+      <ReactiveFallback name="NavigateToPoseRecoveryFallback">
+        <GoalUpdated/>
+        <RoundRobin name="NavigateToPoseRecoveryActions">
+          <Sequence name="ClearingNavigateToPoseRecovery">
+            <ClearEntireCostmap name="ClearLocalCostmap-NavigateToPoseRecovery" service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap name="ClearGlobalCostmap-NavigateToPoseRecovery" service_name="global_costmap/clear_entirely_global_costmap"/>
+          </Sequence>
+          <BackUp backup_dist="-0.30" backup_speed="0.05" time_allowance="10"/>
+          <Wait wait_duration="5"/>
+        </RoundRobin>
+      </ReactiveFallback>
+    </RecoveryNode>
+  </BehaviorTree>
+
+  <!-- 阿克曼车辆专用的避障行为树 -->
+  <BehaviorTree ID="AckermannAvoidance">
+    <RecoveryNode number_of_retries="3" name="AckermannAvoidanceRecovery">
+      <Sequence name="AvoidanceSequence">
+        <RateController hz="2.0">
+          <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+        </RateController>
+        <FollowPath path="{path}" controller_id="FollowPath"/>
+      </Sequence>
+      <ReactiveFallback name="AvoidanceRecoveryFallback">
+        <GoalUpdated/>
+        <Sequence name="AvoidanceRecoverySequence">
+          <!-- 清除局部代价地图 -->
+          <ClearEntireCostmap name="ClearLocalCostmap-Avoidance" service_name="local_costmap/clear_entirely_local_costmap"/>
+          <!-- 短暂等待让障碍物移动 -->
+          <Wait wait_duration="3"/>
+          <!-- 如果仍然无法通过，尝试小幅度后退 -->
+          <BackUp backup_dist="-0.20" backup_speed="0.03" time_allowance="8"/>
+        </Sequence>
+      </ReactiveFallback>
+    </RecoveryNode>
+  </BehaviorTree>
+</root>

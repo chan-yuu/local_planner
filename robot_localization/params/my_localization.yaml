@@ -1,0 +1,41 @@
+### ekf_config.yaml ###
+ekf_filter_node:
+    ros__parameters:
+        # 1. 设置运行频率 (Hz)
+        frequency: 50.0  
+        use_sim_time: true # 如果为true,那么频率就是以/clock话题的频率为准
+        sensor_timeout: 0.5
+
+        # 2. 坐标系设置 (关键步骤)
+        # 您没有 map 坐标系，所以根据文档建议，移除 map_frame 并将 world_frame 设为 odom_frame
+        map_frame: map
+        odom_frame: odom            # 您的里程计父坐标系名字
+        base_link_frame: base_footprint  # 机器人的基座标系名字
+        world_frame: odom           # 设置为 odom，这样节点会发布 odom -> base_link 的 TF
+
+        # 3. 2D 模式
+        # 如果是地面机器人（不飞），建议开启此项，忽略 Z 轴、Roll 和 Pitch
+        two_d_mode: true
+
+        # 4. 开启 TF 发布
+        # 这会广播从 world_frame (odom) 到 base_link_frame (base_link) 的变换
+        publish_tf: true  #
+
+        # 5. 配置您的里程计输入
+        odom0: /odom  # 替换为您实际的 topic 名字
+
+        # 配置要融合的数据维度：[x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
+        # 对于单个里程计，通常融合位置 (x, y)、朝向 (yaw) 和对应的速度。
+        # 注意：如果您开启了 two_d_mode，z, roll, pitch 会自动被忽略，配置为 false 即可。
+        odom0_config: [true,  true,  false,
+                            false, false, true,
+                            true,  true,  false,
+                            false, false, true,
+                            false, false, false]
+        
+        # 如果该里程计是累积误差后的主要位置源，且没有其他绝对位置源，通常不需要设为 differential
+        odom0_differential: false 
+        odom0_relative: false
+
+        print_diagnostics: false      # 开启诊断，如果还有问题可以通过 /diagnostics 看到
+        debug: false

@@ -1,2 +1,0 @@
-# Frenet Planner ROS
-

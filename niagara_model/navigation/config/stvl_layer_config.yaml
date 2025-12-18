@@ -1,0 +1,193 @@
+# STVL Layer 3D点云障碍物检测专用配置文件
+# 适配阿克曼转向车辆的3D雷达点云处理
+#
+# 作者: Navigation2集成团队
+# 版本: 1.0
+# 日期: 2024
+
+# STVL Layer 核心参数
+stvl_layer:
+  # 基础配置
+  enabled: true
+  plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
+  
+  # 点云数据源配置
+  observation_sources: rslidar_points
+  
+  # RSLidar点云配置
+  rslidar_points:
+    # 数据源基本信息
+    topic: /rslidar_points
+    data_type: PointCloud2
+    expected_update_rate: 10.0
+    observation_persistence: 0.0
+    inf_is_valid: false
+    clearing: true
+    marking: true
+    
+    # 点云处理范围
+    max_obstacle_height: 3.0      # 最大障碍物高度(米)
+    min_obstacle_height: 0.1      # 最小障碍物高度(米)
+    obstacle_range: 15.0          # 障碍物检测范围(米)
+    raytrace_range: 20.0          # 光线追踪范围(米)
+    
+    # 3D体素网格配置
+    voxel_size: 0.05              # 体素大小(米)
+    voxel_min_points: 2           # 体素内最小点数
+    voxel_decay_time: 10.0        # 体素衰减时间(秒)
+    
+    # 点云过滤参数
+    point_subsample_factor: 1     # 点云下采样因子
+    point_tolerance: 0.0          # 点容差
+    
+    # 高度过滤配置
+    height_filter:
+      enabled: true
+      min_height: -0.5            # 相对于base_footprint的最小高度
+      max_height: 2.5             # 相对于base_footprint的最大高度
+    
+    # 距离过滤配置
+    distance_filter:
+      enabled: true
+      min_distance: 0.3           # 最小检测距离(避免检测到车身)
+      max_distance: 15.0          # 最大检测距离
+    
+    # 角度过滤配置(针对阿克曼车辆)
+    angle_filter:
+      enabled: true
+      min_angle: -3.14159         # 最小角度(弧度)
+      max_angle: 3.14159          # 最大角度(弧度)
+    
+  # 时空体素网格参数
+  voxel_grid:
+    # 网格尺寸
+    size_x: 40.0                  # X方向网格大小(米)
+    size_y: 40.0                  # Y方向网格大小(米)
+    size_z: 4.0                   # Z方向网格大小(米)
+    
+    # 网格分辨率
+    resolution: 0.05              # 网格分辨率(米/体素)
+    
+    # 时间参数
+    voxel_decay: 10.0             # 体素衰减时间(秒)
+    track_unknown_space: true     # 跟踪未知空间
+    max_z: 3.0                    # 最大Z值
+    min_z: 0.0                    # 最小Z值
+    
+    # 体素标记参数
+    mark_threshold: 2             # 标记阈值
+    update_footprint_enabled: true
+    
+  # 坐标系配置
+  global_frame: odom              # 全局坐标系
+  robot_base_frame: base_footprint # 机器人基础坐标系
+  
+  # 变换配置
+  transform_tolerance: 0.2        # 变换容差(秒)
+  
+  # 发布配置
+  publish_voxel_map: true         # 发布体素地图
+  voxel_pub_topic: /stvl_voxels   # 体素发布话题
+  
+  # 性能优化参数
+  combination_method: 1           # 组合方法(1=最大值)
+  
+  # 阿克曼车辆特定配置
+  ackermann_specific:
+    # 车辆几何参数
+    vehicle_length: 4.5           # 车辆长度(米)
+    vehicle_width: 2.0            # 车辆宽度(米)
+    vehicle_height: 1.8           # 车辆高度(米)
+    
+    # 前方重点检测区域
+    front_detection_zone:
+      enabled: true
+      length: 8.0                 # 前方检测长度(米)
+      width: 3.0                  # 前方检测宽度(米)
+      height: 2.5                 # 前方检测高度(米)
+    
+    # 转向检测区域
+    steering_detection:
+      enabled: true
+      max_steering_angle: 0.6     # 最大转向角(弧度)
+      detection_expansion: 1.5    # 转向时检测区域扩展系数
+    
+    # 速度相关检测
+    speed_adaptive_detection:
+      enabled: true
+      base_detection_range: 10.0  # 基础检测范围(米)
+      speed_factor: 2.0           # 速度系数(检测范围=基础范围+速度*系数)
+      max_detection_range: 20.0   # 最大检测范围(米)
+
+# 代价地图层配置
+costmap_layer_config:
+  # 层优先级
+  layer_priority: 100
+  
+  # 代价值配置
+  cost_scaling_factor: 10.0       # 代价缩放因子
+  inflation_radius: 1.0           # 膨胀半径(米)
+  
+  # 更新频率
+  update_frequency: 5.0           # 更新频率(Hz)
+  publish_frequency: 2.0          # 发布频率(Hz)
+  
+  # 阿克曼车辆代价调整
+  ackermann_cost_adjustment:
+    # 前方代价权重
+    front_cost_weight: 1.5
+    # 侧方代价权重
+    side_cost_weight: 1.0
+    # 后方代价权重
+    rear_cost_weight: 0.8
+    
+    # 转向相关代价
+    steering_cost_factor: 1.2     # 转向时代价增加因子
+    
+# 调试和可视化配置
+debug_config:
+  # 可视化选项
+  visualize_voxels: true          # 可视化体素
+  visualize_obstacles: true       # 可视化障碍物
+  visualize_free_space: false     # 可视化自由空间
+  
+  # 日志级别
+  log_level: INFO                 # 日志级别(DEBUG/INFO/WARN/ERROR)
+  
+  # 性能监控
+  monitor_performance: true       # 监控性能
+  performance_log_interval: 10.0  # 性能日志间隔(秒)
+  
+# 高级配置
+advanced_config:
+  # 多线程处理
+  use_multithreading: true        # 使用多线程
+  num_threads: 4                  # 线程数量
+  
+  # 内存管理
+  memory_limit_mb: 512            # 内存限制(MB)
+  
+  # 点云预处理
+  preprocess_pointcloud:
+    enabled: true
+    # 统计滤波
+    statistical_filter:
+      enabled: true
+      mean_k: 50                  # 邻近点数量
+      std_dev_mul: 1.0            # 标准差倍数
+    
+    # 半径滤波
+    radius_filter:
+      enabled: false
+      radius: 0.1                 # 滤波半径
+      min_neighbors: 5            # 最小邻居数
+    
+    # 体素网格滤波
+    voxel_grid_filter:
+      enabled: true
+      leaf_size: 0.02             # 叶子大小
+  
+  # 动态重配置
+  dynamic_reconfigure:
+    enabled: true
+    update_rate: 1.0              # 重配置更新率(Hz)
